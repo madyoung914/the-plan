@@ -20,6 +20,13 @@
     <button type="submit">Login</button>
 </form>
 
+Create new account:
+<form method="POST" action="{% url 'useraccounts:register' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Register</button>
+</form>
+
 {% endif %}
 
 {% endblock %}

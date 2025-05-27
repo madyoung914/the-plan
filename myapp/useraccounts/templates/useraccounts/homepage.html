@@ -7,11 +7,14 @@
 <p>this is homepage</p>
 
 {% if user.is_authenticated %}
+<h2>Hi {{ user.profile }}</h2>
 <form method="POST" action="{% url 'logout' %}">
     {% csrf_token %}
     {{ form.as_p }}
     <button type="submit">Logout</button>
 </form>
+
+<a href="{% url 'useraccounts:profile' username=user.username %}">Go to your profile</a>
            
 {% else %}
 <form method="POST" action="{% url 'login' %}">
@@ -26,7 +29,6 @@ Create new account:
     {{ form.as_p }}
     <button type="submit">Register</button>
 </form>
-
 {% endif %}
 
 {% endblock %}

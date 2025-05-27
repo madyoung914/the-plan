@@ -5,6 +5,11 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=63)
     bio = models.TextField(blank=True)
+    profile_image = models.ImageField(
+        upload_to='images/user_management/',
+        null=True,
+        blank=True,
+    )
 
     def __str__(self):
         return self.name

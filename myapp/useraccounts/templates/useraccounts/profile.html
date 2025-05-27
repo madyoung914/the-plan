@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+
+{% block title %}{{ profile_user }}{% endblock %}
+
+{% block content %}
+{%if profile_user.profile.profile_image %}
+    <img src="{{ profile_user.profile.profile_image.url }}" alt="{{ profile_user.profile.profile_image.url }}">
+{% endif %}
+
+
+<h2>Display name: {{ profile_user.profile }}</h2>
+<h2>Username: @{{ profile_user }}</h2>
+<h2>
+    {% if request.user.is_authenticated and request.user == profile_user %}
+            Email: {{ profile_user.email }}
+    {% endif %}
+</h2>
+{% if profile_user.profile.bio %}
+    <h4>Bio: {{ profile_user.profile.bio }}</h4>
+{% else %}
+    <h4>Bio: no bio currently</h4>
+{% endif %}
+
+{% if request.user.is_authenticated and request.user == profile_user %}
+    <a href="{% url 'useraccounts:profile-edit' username=profile_user %}">Edit Profile</a>
+{% endif %}
+
+<a href="{% url 'useraccounts:homepage' %}">Go back to homepage</a>
+
+{% endblock %}
+

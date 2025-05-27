@@ -1,5 +1,5 @@
 .env
-myapp/
+myappenv/
 media/
 **/*.pyc
 **/__pycache__

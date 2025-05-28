@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}To-Do List{% endblock %}
+
+{% block content %}
+
+<h2>My To Do List</h2>
+{% if todos %}
+    {% if priority %}
+    <h4>Priority:</h4>
+        {% for task in priority %}
+            <li>{{ task }}: {{ task.description }}</li>
+        {% endfor %}
+    {% endif %}
+
+    {% if nonpriority %}
+    <h4>Later:</h4>
+        {% for task in nonpriority %}
+            <li>{{ task }}: {{ task.description }}</li>
+        {% endfor %}
+    {% endif %}
+{% else %}
+    <p>No tasks for today</p>
+{% endif %}
+
+<br>
+<hr>
+<h4>Add another to do </h4>
+<hr>
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Submit</button>
+</form>
+
+
+{% endblock %}

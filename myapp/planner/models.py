@@ -1,0 +1,69 @@
+from django.db import models
+from useraccounts.models import Profile
+
+class Track(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    owner = models.ForeignKey(Profile, on_delete=models.CASCADE, null=False, related_name='tracks')
+    archived = models.BooleanField(default="False")
+
+    #class related stuff 
+    professor = models.CharField(max_length=255, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    syllabus = models.URLField(blank=True, null=True)
+    course_code = models.CharField(max_length=255, blank=True, null=True)
+    subject_name = models.CharField(max_length=255, blank=True, null=True)
+    class_time_location = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Workspace(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    owner = models.ForeignKey(Profile, on_delete=models.CASCADE, null=False, related_name='workspaces')
+    track = models.ForeignKey(Track, blank=True, null=True, on_delete=models.SET_NULL, related_name='workspace_track')
+    members = models.ManytoManyField(User, related_name='members')
+    archived = models.BooleanField(default="False")
+
+    def __str__(self):
+        return self.name
+
+
+class Task(models.Model):
+
+    TASK_STATUS = (
+        ('D', 'Done'),
+        ('S', 'Pending'),
+        ('NS', 'Not Started'),
+    )
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    owner = models.ForeignKey(Profile, on_delete=models.CASCADE, null=False, related_name='workspaces')
+    track = models.ForeignKey(Track, blank=True, null=True, on_delete=models.SET_NULL, related_name='task_track')
+    workspace = models.ForeignKey(Workspace, blank=True, null=True, on_delete=models.SET_NULL, related_name='task_workspace')
+
+    deadline = models.DateTimeField(blank=True, null=True)
+    days_left = models.IntegerField(blank=True, null=True)
+    priority = models.BooleanField(default="False")
+    status = models.CharField(max_length=15, choices=TASK_STATUS, default="NS")
+    grade = models.DecimalField(decimal_places=2, max_digits=5)
+    #links?? shld this be its own model
+
+    def __str__(self):
+        return self.name
+
+
+class Event(models.model): 
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+
+

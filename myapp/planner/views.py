@@ -54,6 +54,13 @@ class TodoListView(ListView):
             obj.save()
             return redirect(reverse('planner:to-do')) 
 
+        if "edit_task_id" in request.POST:
+            task_id = request.POST.get("edit_task_id")  
+            obj = get_object_or_404(Task, pk=task_id)
+            obj.name = request.POST.get('entry', obj.name)
+            obj.save()
+            return redirect(reverse('planner:to-do'))
+
         form = TodoForm(request.POST)
         if form.is_valid():
             task = form.save(commit=False)

@@ -1,10 +1,12 @@
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse
 from django.views.generic.list import ListView
+from django.views.generic.edit import CreateView, UpdateView
 from django.http import HttpResponseForbidden
 from django.db.models import Q
+from django.contrib.auth.mixins import LoginRequiredMixin
 
-from .models import Task
+from .models import Task, Track, Workspace
 from .forms import TodoForm
 from useraccounts.models import Profile
 
@@ -32,7 +34,6 @@ class TodoListView(ListView):
         ctx['pending_tasks'] = pending_tasks
         ctx['completed_tasks'] = completed_tasks
         ctx['missed_tasks'] = missed_tasks
-        
         
         return ctx
 
@@ -79,7 +80,66 @@ class TodoListView(ListView):
         return redirect(reverse('planner:to-do'))
 
         
+class TaskCreateView(LoginRequiredMixin, CreateView):
+    model = Task
+    template_name = "planner/planner_form.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['form'] = TaskForm()
+        ctx['title'] = 'Create new task'
+
+    def form_valid(self, form):
+        form.instance.owner = self.request.user.profile
         
+
+        form.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy("planner:task",
+                            kwargs={"pk": self.object.pk})
+
+
+class TrackCreateView(LoginRequiredMixin, CreateView):
+    model = Track
+    template_name = "planner/planner_form.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['form'] = TrackForm()
+        ctx['title'] = 'Create new track'
+
+    def form_valid(self, form):
+        form.instance.owner = self.request.user.profile
+        form.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy("planner:track",
+                            kwargs={"pk": self.object.pk})
+
+
+class WorkspaceCreateView(LoginRequiredMixin, CreateView):
+    model = Task
+    template_name = "planner/planner_form.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['form'] = WorkspaceForm()
+        ctx['title'] = 'Create new workspace'
+
+    def form_valid(self, form):
+        form.instance.owner = self.request.user.profile
+        
+
+        form.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy("planner:workspace",
+                            kwargs={"pk": self.object.pk})
+
 
 
 

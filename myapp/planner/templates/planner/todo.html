@@ -9,14 +9,73 @@
     {% if priority %}
     <h4>Priority:</h4>
         {% for task in priority %}
+            {% if task.status == 'D' %}
+            <li><s>{{ task }}: {{ task.description }}</s></li>
+            <form action="{% url 'planner:to-do' %}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                {% csrf_token %}
+                <input type="hidden" name="delete_task_id" value="{{ task.pk }}">
+                <button type="submit">Delete</button>
+            </form>
+
+            <form action="{% url 'planner:to-do' %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="complete_task_id" value="{{ task.pk }}">
+                <button type="submit">Undone?</button>
+            </form>
+                
+
+            {% else %}
             <li>{{ task }}: {{ task.description }}</li>
+            <form action="{% url 'planner:to-do' %}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                {% csrf_token %}
+                <input type="hidden" name="delete_task_id" value="{{ task.pk }}">
+                <button type="submit">Delete</button>
+            </form>
+
+            <form action="{% url 'planner:to-do' %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="complete_task_id" value="{{ task.pk }}">
+                <button type="submit">Done?</button>
+            </form>
+
+            {% endif %}
+            
         {% endfor %}
     {% endif %}
 
     {% if nonpriority %}
     <h4>Later:</h4>
         {% for task in nonpriority %}
+             {% if task.status == 'D' %}
+            <li><s>{{ task }}: {{ task.description }}</s></li>
+            <form action="{% url 'planner:to-do' %}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                {% csrf_token %}
+                <input type="hidden" name="delete_task_id" value="{{ task.pk }}">
+                <button type="submit">Delete</button>
+            </form>
+
+            <form action="{% url 'planner:to-do' %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="complete_task_id" value="{{ task.pk }}">
+                <button type="submit">Undone?</button>
+            </form>
+                
+
+            {% else %}
             <li>{{ task }}: {{ task.description }}</li>
+            <form action="{% url 'planner:to-do' %}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                {% csrf_token %}
+                <input type="hidden" name="delete_task_id" value="{{ task.pk }}">
+                <button type="submit">Delete</button>
+            </form>
+
+            <form action="{% url 'planner:to-do' %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="complete_task_id" value="{{ task.pk }}">
+                <button type="submit">Done?</button>
+            </form>
+
+            {% endif %}
         {% endfor %}
     {% endif %}
 {% else %}
@@ -33,5 +92,26 @@
     <button type="submit">Submit</button>
 </form>
 
+<br>
+<hr>
+<h2>My Tasks</h2>
+<hr>
 
+<h4>Ongoing</h4>
+{% for task in pending_tasks %}
+    <li>{{ task }}: {{ task.days_left }} days left</li>
+{% endfor %}
+
+<h4>Completed</h4>
+{% for task in completed_tasks %}
+    <li>{{ task }}: {{ task.days_left }} days left</li>
+{% endfor %}
+
+<h4>Missed</h4>
+{% for task in missed_tasks %}
+    <li>{{ task }}: {{ task.days_left }} days left</li>
+{% endfor %}
+
+<br>
+<a href="{% url 'useraccounts:homepage' %}">Go back to homepage</a>
 {% endblock %}

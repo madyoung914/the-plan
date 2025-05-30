@@ -1,11 +1,12 @@
 from django.db import models
 from useraccounts.models import Profile
+from django.urls import reverse
 
 class Track(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     owner = models.ForeignKey(Profile, on_delete=models.CASCADE, null=False, related_name='tracks')
-    archived = models.BooleanField(default="False")
+    archived = models.BooleanField(default=False)
 
     #class related stuff 
     professor = models.CharField(max_length=255, blank=True, null=True)
@@ -17,6 +18,9 @@ class Track(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('planner:track-detail', args=[self.pk])
 
 
 class Workspace(models.Model):

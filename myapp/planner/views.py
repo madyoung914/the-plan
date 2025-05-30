@@ -1,13 +1,14 @@
 from django.shortcuts import redirect, get_object_or_404
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.views.generic.list import ListView
+from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView, UpdateView
 from django.http import HttpResponseForbidden
 from django.db.models import Q
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .models import Task, Track, Workspace
-from .forms import TodoForm
+from .forms import TodoForm, TrackForm
 from useraccounts.models import Profile
 
 
@@ -19,7 +20,7 @@ class TodoListView(ListView):
         user = Profile.objects.get(user=self.request.user)
         self.object_list = self.get_queryset()
         ctx = super().get_context_data(**kwargs)
-        ctx['form'] = TodoForm()
+        ctx['form'] = TodoForm
         all_todo = Task.objects.filter(owner=user, track=None, workspace=None)
         priority_todo = Task.objects.filter(owner=user, track=None, workspace=None, priority=True)
         nonpriority_todo = Task.objects.filter(owner=user, track=None, workspace=None, priority=False)
@@ -79,7 +80,70 @@ class TodoListView(ListView):
     def get_success_url(self):
         return redirect(reverse('planner:to-do'))
 
-        
+
+
+class TrackCreateView(LoginRequiredMixin, CreateView):
+    model = Track
+    form_class = TrackForm
+    template_name = "planner/track_form.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['title'] = 'Create new track'
+
+        return ctx
+
+    def form_valid(self, form):
+        form.instance.owner = self.request.user.profile
+        form.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy("planner:track-detail",
+                            kwargs={"pk": self.object.pk})
+
+
+class TrackUpdateView(LoginRequiredMixin, UpdateView):
+    model = Track
+    form_class = TrackForm
+    emplate_name = "planner/track_form.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['title'] = 'Edit my track'
+
+        return ctx
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy("planner:track-detail",
+                            kwargs={"pk": self.object.pk})
+
+
+class TrackListView(ListView):
+    model = Track
+    template_name = "planner/track_list.html"
+
+    def get_context_data(self, **kwargs):
+        user = Profile.objects.get(user=self.request.user)
+        ctx = super().get_context_data(**kwargs)
+        if self.request.user.is_authenticated:
+            ctx['current_tracks'] = Track.objects.filter(owner=user, archived=False)
+            ctx['past_tracks'] = Track.objects.filter(owner=user, archived=True)
+
+        return ctx
+
+
+class TrackDetailView(DetailView):
+    model = Track
+    fields = '__all__'
+    template_name = "planner/track_detail.html"
+
+
+'''
 class TaskCreateView(LoginRequiredMixin, CreateView):
     model = Task
     template_name = "planner/planner_form.html"
@@ -99,26 +163,6 @@ class TaskCreateView(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse_lazy("planner:task",
                             kwargs={"pk": self.object.pk})
-
-
-class TrackCreateView(LoginRequiredMixin, CreateView):
-    model = Track
-    template_name = "planner/planner_form.html"
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['form'] = TrackForm()
-        ctx['title'] = 'Create new track'
-
-    def form_valid(self, form):
-        form.instance.owner = self.request.user.profile
-        form.save()
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse_lazy("planner:track",
-                            kwargs={"pk": self.object.pk})
-
 
 class WorkspaceCreateView(LoginRequiredMixin, CreateView):
     model = Task
@@ -140,7 +184,7 @@ class WorkspaceCreateView(LoginRequiredMixin, CreateView):
         return reverse_lazy("planner:workspace",
                             kwargs={"pk": self.object.pk})
 
-
+'''
 
 
 

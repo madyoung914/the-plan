@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}My Tracks{% endblock %}
+{% block content %}
+
+{% if current_tracks %}
+    <h2>My Current Tracks</h2>
+    {% for track in current_tracks %}
+        <li><a href="{{ track.get_absolute_url }}">{{ track }}</a></li>
+
+    {% endfor %}
+{% endif %}
+
+{% if past_tracks %}
+    <h2>My Past Tracks</h2>
+    {% for track in past_tracks %}
+        <li><a href="{{ track.get_absolute_url }}">{{ track }}</a></li>
+
+    {% endfor %}
+{% endif %}
+
+<a href="{% url 'planner:track-create' %}">Create track</a>
+
+{% endblock %}

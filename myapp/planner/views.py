@@ -63,6 +63,17 @@ class TodoListView(ListView):
             obj.save()
             return redirect(reverse('planner:to-do'))
 
+        if "priority_task_id" in request.POST:
+            task_id = request.POST.get("priority_task_id")  
+            obj = get_object_or_404(Task, pk=task_id)
+            if obj.priority == False:
+                obj.priority = True
+            else:
+                obj.priority = False
+
+            obj.save()
+            return redirect(reverse('planner:to-do')) 
+
         form = TodoForm(request.POST)
         if form.is_valid():
             task = form.save(commit=False)

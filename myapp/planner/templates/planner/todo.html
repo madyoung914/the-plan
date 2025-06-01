@@ -52,6 +52,12 @@
                 <input type="hidden" name="complete_task_id" value="{{ task.pk }}">
                 <button type="submit">Done?</button>
             </form>
+
+            <form action="{% url 'planner:to-do' %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="priority_task_id" value="{{ task.pk }}">
+                <button type="submit">Unprioritize?</button>
+            </form>
             {% endif %}
             
         {% endfor %}
@@ -102,6 +108,12 @@
                 {% csrf_token %}
                 <input type="hidden" name="complete_task_id" value="{{ task.pk }}">
                 <button type="submit">Done?</button>
+            </form>
+
+            <form action="{% url 'planner:to-do' %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="priority_task_id" value="{{ task.pk }}">
+                <button type="submit">Prioritize?</button>
             </form>
 
             {% endif %}

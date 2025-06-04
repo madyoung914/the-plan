@@ -6,9 +6,10 @@ from django.views.generic.edit import CreateView, UpdateView
 from django.http import HttpResponseForbidden
 from django.db.models import Q
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils.timezone import localdate
 
 from .models import Task, Track, Workspace
-from .forms import TodoForm, TrackForm, TaskForm
+from .forms import TodoForm, TrackForm, TaskForm, WorkspaceForm
 from useraccounts.models import Profile
 
 
@@ -28,9 +29,9 @@ class TodoListView(ListView):
         ctx['priority'] = priority_todo
         ctx['nonpriority'] = nonpriority_todo
 
-        pending_tasks = Task.objects.filter(Q(owner=user, track__isnull=False) |  Q(workspace__isnull=False), Q(status='S') | Q(status='NS'), days_left__gte=0).order_by('-deadline')
-        completed_tasks = Task.objects.filter(Q(owner=user, track__isnull=False) |  Q(workspace__isnull=False), status='D', days_left__gte=0)
-        missed_tasks = Task.objects.filter(Q(owner=user, track__isnull=False) |  Q(workspace__isnull=False), Q(status='S') | Q(status='NS'), days_left__lt=0).order_by('-deadline')
+        pending_tasks = Task.objects.filter(Q(owner=user, track__isnull=False) |  Q(workspace__isnull=False), Q(status='Ongoing') | Q(status='Not Started'), days_left__gte=0).order_by('-deadline')
+        completed_tasks = Task.objects.filter(Q(owner=user, track__isnull=False) |  Q(workspace__isnull=False), status='Done', days_left__gte=0)
+        missed_tasks = Task.objects.filter(Q(owner=user, track__isnull=False) |  Q(workspace__isnull=False), Q(status='Ongoing') | Q(status='Not Started'), days_left__lt=0).order_by('-deadline')
         
         ctx['pending_tasks'] = pending_tasks
         ctx['completed_tasks'] = completed_tasks
@@ -48,10 +49,10 @@ class TodoListView(ListView):
         if "complete_task_id" in request.POST:
             task_id = request.POST.get("complete_task_id")  
             obj = get_object_or_404(Task, pk=task_id)
-            if obj.status == 'D':
-                obj.status = 'ND'
+            if obj.status == 'Done':
+                obj.status = 'Not Started'
             else:
-                obj.status = 'D'
+                obj.status = 'Done'
 
             obj.save()
             return redirect(reverse('planner:to-do')) 
@@ -90,7 +91,6 @@ class TodoListView(ListView):
 
     def get_success_url(self):
         return redirect(reverse('planner:to-do'))
-
 
 
 class TrackCreateView(LoginRequiredMixin, CreateView):
@@ -176,22 +176,46 @@ class TrackDetailView(LoginRequiredMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         if self.request.user.is_authenticated:
             track = get_object_or_404(Track, pk=self.object.pk) 
-            ctx['tasks'] = Task.objects.filter(owner=user, track=track)
+            ctx['tasks_done'] = Task.objects.filter(owner=user, track=track, status='Done')
+            ctx['tasks_not_done'] = Task.objects.filter( Q(status='Ongoing') | Q(status='Not Started'), owner=user, track=track)
             ctx['pk'] = self.object.pk
             ctx['form'] = TaskForm
+            ctx['workspaces'] = Workspace.objects.filter(owner=user)
 
             return ctx
 
     def post(self, request, *args, **kwargs): 
         self.object = self.get_object()
+
         form = TaskForm(request.POST)
         track = get_object_or_404(Track, pk=self.object.pk) 
+
+        if "delete_task_id" in request.POST:
+            task_id = request.POST.get("delete_task_id")  
+            obj = get_object_or_404(Task, pk=task_id)
+            obj.delete()
+            return redirect(reverse('planner:track-detail', kwargs={"pk": track.pk})) 
+
+        if "delete_workspace_id" in request.POST:
+            workspace_id = request.POST.get("delete_workspace_id")  
+            obj = get_object_or_404(Workspace, pk=workspace_id)
+            obj.delete()
+            return redirect(reverse('planner:track-detail', kwargs={"pk": track.pk})) 
+
         if form.is_valid():
             task = form.save(commit=False)
             if request.user.is_authenticated:
                 task.owner = request.user.profile 
             
             task.track = track
+
+            today = localdate()
+
+            if task.deadline:
+                task.days_left = task.deadline - localdate()
+                days_left = task.deadline - localdate()
+                task.days_left = days_left.days
+            
             task.save()
             return redirect(reverse('planner:track-detail', kwargs={"pk": track.pk}))
         else:
@@ -216,8 +240,17 @@ class TaskUpdateView(LoginRequiredMixin, UpdateView):
         return ctx
 
     def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)
+        task = form.save(commit=False)
+        today = localdate()
+
+        if task.deadline:
+            task.name = 'this is work'
+            days_left = task.deadline - localdate()
+            task.days_left = days_left.days
+
+        task.save()
+        return super().form_valid(task)
+
 
     def get_success_url(self):
         self.object = self.get_object()
@@ -225,8 +258,129 @@ class TaskUpdateView(LoginRequiredMixin, UpdateView):
                             kwargs={"pk": self.object.track.pk})
 
 
+class WorkspaceCreateView(LoginRequiredMixin, CreateView): 
+    model = Workspace 
+    form_class = WorkspaceForm
+    template_name = "planner/planner_form.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs) 
+        ctx['title'] = 'Create new workspace' 
+        return ctx 
+
+    def form_valid(self,form):
+        form.instance.owner = self.request.user.profile 
+        if not form.instance.track and self.request.GET.get('track_id'):
+            form.instance.track = get_object_or_404(Track, pk=self.request.GET.get('track_id'))
+        form.save() 
+        return super().form_valid(form) 
+
+    def get_success_url(self): 
+        return reverse_lazy("planner:workspace-detail", kwargs={"pk": self.object.pk})
 
 
+class WorkspaceUpdateView(LoginRequiredMixin, CreateView):
+    model = Workspace 
+    form_class = WorkspaceForm
+    template_name = "planner/planner_form.html"
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs) 
+        ctx['title'] = 'Edit my workspace' 
+        return ctx 
+
+    def form_valid(self,form):
+        form.instance.owner = self.request.user.profile 
+        form.save() 
+        return super().form_valid(form) 
+
+    def get_success_url(self): 
+        return reverse_lazy("planner:workspace-detail", kwargs={"pk": self.object.ppk})
+
+ 
+class WorkspaceListView(LoginRequiredMixin, ListView):
+    model = Workspace
+    template_name = "planner/workspace_list.html"
+
+    def post(self,request, *args, **kwargs):
+        if "delete_workspace_id" in request.POST:
+            workspace_id = request.POST.get("delete_workspace_id")  
+            obj = get_object_or_404(Workspace, pk=workspace_id)
+            obj.delete()
+            return redirect(reverse('planner:workspace-list')) 
+
+        if "complete_workspace_id" in request.POST:
+            workspace_id = request.POST.get("complete_workspace_id")  
+            obj = get_object_or_404(Workspace, pk=workspace_id)
+            if obj.archived == True:
+                obj.archived = False
+            else:
+                obj.archived = True
+
+            obj.save()
+            return redirect(reverse('planner:workspace-list')) 
+
+    def get_context_data(self, **kwargs):
+        user = Profile.objects.get(user=self.request.user)
+        ctx = super().get_context_data(**kwargs)
+        if self.request.user.is_authenticated:
+            ctx['current_workspaces'] = Workspace.objects.filter(owner=user, archived=False)
+            ctx['past_workspaces'] = Workspace.objects.filter(owner=user, archived=True)
+
+        return ctx
+
+
+class WorkspaceDetailView(LoginRequiredMixin, DetailView):
+    model = Workspace
+    fields = '__all__'
+    template_name = "planner/workspace_detail.html"
+
+    def get_context_data(self, **kwargs): 
+        user = Profile.objects.get(user=self.request.user)
+        ctx = super().get_context_data(**kwargs)
+        if self.request.user.is_authenticated:
+            workspace = get_object_or_404(Workspace, pk=self.object.pk) 
+            ctx['tasks_done'] = Task.objects.filter(owner=user, workspace=workspace, status='Done')
+            ctx['tasks_not_done'] = Task.objects.filter( Q(status='Ongoing') | Q(status='Not Started'), owner=user, workspace=workspace)
+            ctx['pk'] = self.object.pk
+            ctx['form'] = TaskForm
+
+            return ctx
+
+    def post(self, request, *args, **kwargs): 
+        self.object = self.get_object()
+
+        form = TaskForm(request.POST)
+        workspace = get_object_or_404(Workspace, pk=self.object.pk) 
+
+        if "delete_task_id" in request.POST:
+            task_id = request.POST.get("delete_task_id")  
+            obj = get_object_or_404(Task, pk=task_id)
+            obj.delete()
+            return redirect(reverse('planner:workspace-detail', kwargs={"pk": workspace.pk})) 
+        if form.is_valid():
+            task = form.save(commit=False)
+            if request.user.is_authenticated:
+                task.owner = request.user.profile 
+            
+            task.workspace = workspace
+
+            today = localdate()
+
+            if task.deadline:
+                task.days_left = task.deadline - localdate()
+                days_left = task.deadline - localdate()
+                task.days_left = days_left.days
+            
+            task.save()
+            return redirect(reverse('planner:workspace-detail', kwargs={"pk": workspace.pk}))
+        else:
+            context = self.get_context_data(**kwargs)
+            context['form'] = form
+            return self.render_to_response(context)
+
+        
+    def get_success_url(self):
+        return redirect(reverse('planner:workspace-detail', kwargs={"pk": workspace.pk}))
 
 

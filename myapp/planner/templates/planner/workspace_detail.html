@@ -1,27 +1,17 @@
 {% extends 'base.html' %}
 
 {% block title %}{{ object }}{% endblock %}
-{% block content %}
+
+{% block content %} 
 
 <p>{{ object }}</p>
 <p>{{ object.description }}</p>
 
-{% if object.professor or object.email %}
-<p>Professor: {{ object.professor }} @{{ object.email }}</p>
+{% if object.members %}
+<p>Members: {{ object.members }}</p>
 {% endif %}
  
-{% if object.syllabus %}
-<p>Syllabus: {{ object.syllabus }}</p>
-{% endif %}
- 
-{% if object.course_code or object.subject_name %}
-<p>Subject: {{ object.subject_name }} {{ object.course_code }}</p>
-{% endif %}
-
-{% if object.professor %}
-<p>Time & Location: {{ object.class_time_location }}</p>
-{% endif %}
-
+<p>Track:{{ object.track }}</p>
 
 <hr>
 
@@ -39,7 +29,7 @@
 <h4>Finished</h4>
 {% for task in tasks_done %} 
     <li>{{ task }}</li>
-    <a href="{% url 'planner:track-task-update' pk=task.pk %}">Edit</a>
+    <a href="{% url 'planner:workspace-task-update' pk=task.pk %}">Edit</a>
     <ul>
         <li>Status: {{ task.status }}</li>
         {% if task.deadline %}
@@ -53,7 +43,7 @@
         <li>Notes: {{ task.description }}</li>
         {% endif %}
 
-        <form action="{% url 'planner:track-detail' pk=pk %}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
+        <form action="{% url 'planner:workspace-detail' pk=pk %}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
             {% csrf_token %}
             <input type="hidden" name="delete_task_id" value="{{ task.pk }}">
             <button type="submit">Delete</button>
@@ -67,7 +57,7 @@
 <h4>Not finished</h4>
 {% for task in tasks_not_done %} 
     <li>{{ task }}</li>
-    <a href="{% url 'planner:track-task-update' pk=task.pk %}">Edit</a>
+    <a href="{% url 'planner:workspace-task-update' pk=task.pk %}">Edit</a>
     <ul>
         <li>Status: {{ task.status }}</li>
         {% if task.deadline %}
@@ -80,7 +70,7 @@
         {% if task.description %}
         <li>Notes: {{ task.description }}</li>
         {% endif %}
-        <form action="{% url 'planner:track-detail' pk=pk %}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
+        <form action="{% url 'planner:workspace-detail' pk=pk %}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
             {% csrf_token %}
             <input type="hidden" name="delete_task_id" value="{{ task.pk }}">
             <button type="submit">Delete</button>
@@ -91,21 +81,12 @@
 
 {% endfor %}
 
-<h4>My Workspaces</h4>
-
-{% for workspace in workspaces %}
-    <li><a href="{% url 'planner:workspace-detail' pk=workspace.pk %}">{{ workspace }}</a></li>
-    <form action="{% url 'planner:track-detail' pk=pk %}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
-            {% csrf_token %}
-            <input type="hidden" name="delete_workspace_id" value="{{ workspace.pk }}">
-            <button type="submit">Delete</button>
-        </form>
-{% endfor %}
-<br>
-<a href="{% url 'planner:workspace-create' %}?track_id={{ object.id }}">Create workspace</a>
-
 <hr>
 
-<a href="{% url 'planner:track-update' pk=pk %}">Edit</a>
-<a href="{% url 'planner:track-list' %}">Go to my tracks</a>
+<a href="{% url 'planner:workspace-update' pk=pk %}">Edit</a>
+<a href="{% url 'planner:workspace-list' %}">Go to my workspaces</a>
+{% if object.track %}
+    <a href="{% url 'planner:track-detail' pk=object.track.pk %}">Go back to my track</a>
+{% endif %}
+
 {% endblock %}

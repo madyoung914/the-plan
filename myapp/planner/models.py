@@ -29,18 +29,20 @@ class Workspace(models.Model):
     owner = models.ForeignKey(Profile, on_delete=models.CASCADE, null=False, related_name='workspaces')
     track = models.ForeignKey(Track, blank=True, null=True, on_delete=models.SET_NULL, related_name='workspace_track')
     members = models.ManyToManyField(Profile, related_name='members')
-    archived = models.BooleanField(default="False")
+    archived = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return reverse('planner:workspace-detail', args=[self.pk])
 
 class Task(models.Model):
 
     TASK_STATUS = (
-        ('D', 'Done'),
-        ('S', 'Pending'),
-        ('NS', 'Not Started'),
+        ('Done', 'Done'),
+        ('Ongoing', 'Ongoing'),
+        ('Not Started', 'Not Started'),
     )
 
     name = models.CharField(max_length=255)
@@ -49,16 +51,18 @@ class Task(models.Model):
     track = models.ForeignKey(Track, blank=True, null=True, on_delete=models.SET_NULL, related_name='task_track')
     workspace = models.ForeignKey(Workspace, blank=True, null=True, on_delete=models.SET_NULL, related_name='task_workspace')
 
-    deadline = models.DateTimeField(blank=True, null=True)
+    deadline = models.DateField(blank=True, null=True)
     days_left = models.IntegerField(blank=True, null=True)
     priority = models.BooleanField(default=False)
-    status = models.CharField(max_length=15, choices=TASK_STATUS, default="NS")
+    status = models.CharField(max_length=15, choices=TASK_STATUS, default="Not Started")
     grade = models.DecimalField(decimal_places=2, max_digits=5, blank=True, null=True)
     #links?? shld this be its own model
 
     def __str__(self):
         return self.name
 
+    class Meta:
+        ordering =['deadline']
 
 class Event(models.Model): 
     name = models.CharField(max_length=255)

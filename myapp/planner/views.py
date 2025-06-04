@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .models import Task, Track, Workspace
-from .forms import TodoForm, TrackForm
+from .forms import TodoForm, TrackForm, TaskForm
 from useraccounts.models import Profile
 
 
@@ -96,7 +96,7 @@ class TodoListView(ListView):
 class TrackCreateView(LoginRequiredMixin, CreateView):
     model = Track
     form_class = TrackForm
-    template_name = "planner/track_form.html"
+    template_name = "planner/planner_form.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -117,7 +117,7 @@ class TrackCreateView(LoginRequiredMixin, CreateView):
 class TrackUpdateView(LoginRequiredMixin, UpdateView):
     model = Track
     form_class = TrackForm
-    emplate_name = "planner/track_form.html"
+    template_name = "planner/planner_form.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -134,9 +134,27 @@ class TrackUpdateView(LoginRequiredMixin, UpdateView):
                             kwargs={"pk": self.object.pk})
 
 
-class TrackListView(ListView):
+class TrackListView(LoginRequiredMixin, ListView):
     model = Track
     template_name = "planner/track_list.html"
+
+    def post(self,request, *args, **kwargs):
+        if "delete_track_id" in request.POST:
+            track_id = request.POST.get("delete_track_id")  
+            obj = get_object_or_404(Track, pk=track_id)
+            obj.delete()
+            return redirect(reverse('planner:track-list')) 
+
+        if "complete_track_id" in request.POST:
+            track_id = request.POST.get("complete_track_id")  
+            obj = get_object_or_404(Track, pk=track_id)
+            if obj.archived == True:
+                obj.archived = False
+            else:
+                obj.archived = True
+
+            obj.save()
+            return redirect(reverse('planner:track-list')) 
 
     def get_context_data(self, **kwargs):
         user = Profile.objects.get(user=self.request.user)
@@ -148,54 +166,64 @@ class TrackListView(ListView):
         return ctx
 
 
-class TrackDetailView(DetailView):
+class TrackDetailView(LoginRequiredMixin, DetailView):
     model = Track
     fields = '__all__'
     template_name = "planner/track_detail.html"
 
+    def get_context_data(self, **kwargs): 
+        user = Profile.objects.get(user=self.request.user)
+        ctx = super().get_context_data(**kwargs)
+        if self.request.user.is_authenticated:
+            track = get_object_or_404(Track, pk=self.object.pk) 
+            ctx['tasks'] = Task.objects.filter(owner=user, track=track)
+            ctx['pk'] = self.object.pk
+            ctx['form'] = TaskForm
 
-'''
-class TaskCreateView(LoginRequiredMixin, CreateView):
+            return ctx
+
+    def post(self, request, *args, **kwargs): 
+        self.object = self.get_object()
+        form = TaskForm(request.POST)
+        track = get_object_or_404(Track, pk=self.object.pk) 
+        if form.is_valid():
+            task = form.save(commit=False)
+            if request.user.is_authenticated:
+                task.owner = request.user.profile 
+            
+            task.track = track
+            task.save()
+            return redirect(reverse('planner:track-detail', kwargs={"pk": track.pk}))
+        else:
+            context = self.get_context_data(**kwargs)
+            context['form'] = form
+            return self.render_to_response(context)
+
+        
+    def get_success_url(self):
+        return redirect(reverse('planner:track-detail', kwargs={"pk": track.pk}))
+
+
+class TaskUpdateView(LoginRequiredMixin, UpdateView):
     model = Task
+    form_class = TaskForm
     template_name = "planner/planner_form.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['form'] = TaskForm()
-        ctx['title'] = 'Create new task'
+        ctx['title'] = 'Edit my task'
+
+        return ctx
 
     def form_valid(self, form):
-        form.instance.owner = self.request.user.profile
-        
-
         form.save()
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy("planner:task",
-                            kwargs={"pk": self.object.pk})
+        self.object = self.get_object()
+        return reverse_lazy("planner:track-detail",
+                            kwargs={"pk": self.object.track.pk})
 
-class WorkspaceCreateView(LoginRequiredMixin, CreateView):
-    model = Task
-    template_name = "planner/planner_form.html"
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['form'] = WorkspaceForm()
-        ctx['title'] = 'Create new workspace'
-
-    def form_valid(self, form):
-        form.instance.owner = self.request.user.profile
-        
-
-        form.save()
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse_lazy("planner:workspace",
-                            kwargs={"pk": self.object.pk})
-
-'''
 
 
 

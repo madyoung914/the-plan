@@ -4,8 +4,59 @@
 {% block content %}
 
 <p>{{ object }}</p>
+<p>{{ object.description }}</p>
+
+{% if object.professor or object.email %}
+<p>Professor: {{ object.professor }} @{{ object.email }}</p>
+{% endif %}
+ 
+{% if object.syllabus %}
+<p>Syllabus: {{ object.syllabus }}</p>
+{% endif %}
+ 
+{% if object.course_code or object.subject_name %}
+<p>Subject: {{ object.subject_name }} {{ object.course_code }}</p>
+{% endif %}
+
+{% if object.professor %}
+<p>Time & Location: {{ object.class_time_location }}</p>
+{% endif %}
 
 
-<a href="{% url 'planner:track-update' pk=object.pk %}">Edit</a>
+<hr>
+
+<h4>Add task </h4>
+<hr>
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Submit</button>
+</form>
+
+<hr>
+<h3>My tasks</h3>
+{% for task in tasks %} 
+    <li>{{ task }}</li>
+    <ul>
+        <li>Status: {{ task.status }}</li>
+        {% if task.deadline %}
+        <li>Deadline: {{ task.deadline }}</li>
+        {% endif %}
+        {% if task.grade %}
+        <li>Grade: {{ task.grade }}</li>
+        {% endif %}
+        {% if task.deadline %}
+        <li>Notes: {{ task.description }}</li>
+        {% endif %}
+
+        <a href="{% url 'planner:task-update' pk=task.pk %}">Edit</a>
+    </ul>
+        
+
+{% endfor %}
+
+<hr>
+
+<a href="{% url 'planner:track-update' pk=pk %}">Edit</a>
 <a href="{% url 'planner:track-list' %}">Go to my tracks</a>
 {% endblock %}
